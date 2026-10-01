@@ -1,5 +1,6 @@
 from typing import Optional, List
 
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import (
     create_engine,
     Field,
@@ -37,7 +38,15 @@ class Posting(SQLModel, table=True):
         return NotImplemented
 
 
-engine = create_engine('sqlite:///scrapdep.db')
+DEFAULT_DB_PATH = 'scrapdep.db'
+
+engine = create_engine(f'sqlite:///{DEFAULT_DB_PATH}')
+
+
+def configure_engine(db_path: str):
+    '''Points the repository at a different sqlite file.'''
+    global engine
+    engine = create_engine(f'sqlite:///{db_path}')
 
 
 def create_db_and_tables():
@@ -45,10 +54,16 @@ def create_db_and_tables():
 
 
 class PostingRepository:
-    def create_posting(self, posting: Posting):
+    def create_posting(self, posting: Posting) -> bool:
+        '''Saves the posting. Returns False if its sha/url already exists.'''
         with Session(engine) as session:
             session.add(posting)
-            session.commit()
+            try:
+                session.commit()
+            except IntegrityError:
+                session.rollback()
+                return False
+        return True
 
     def get_posting_by_sha(self, sha: str) -> Optional[Posting]:
         with Session(engine) as session:

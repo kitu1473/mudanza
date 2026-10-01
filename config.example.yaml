@@ -1,0 +1,37 @@
+# Config de ejemplo. Copiar a config.yaml (ignorado por git) para uso local.
+# En GitHub Actions se usa este mismo archivo; el token y el chat id llegan
+# por los secrets TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID (nunca van acá).
+persist: false
+dry_run: true          # true = no manda a Telegram ni marca avisos como enviados
+db_path: scrapdep.db
+pages: 3               # 15-20 para la primera corrida; 2-3 después. No aplica a MercadoLibre
+request_delay: 1.5     # segundos entre requests, para no ser bloqueado
+# bot_token: ""        # o variable de entorno TELEGRAM_BOT_TOKEN
+# chat_room: ""        # o variable de entorno TELEGRAM_CHAT_ID
+
+
+zonaprop_full_url:
+  - "https://www.zonaprop.com.ar/casas-departamentos-ph-alquiler-flores-parque-avellaneda-parque-chacabuco-mataderos-villa-luro-velez-sarsfield-monte-castro-floresta-villa-santa-rita-villa-general-mitre-caballito-con-balcon-desde-2-hasta-3-ambientes-menos-1300000-pesos-orden-publicado-descendente.html"
+  - "https://www.zonaprop.com.ar/casas-departamentos-ph-alquiler-flores-parque-avellaneda-parque-chacabuco-mataderos-villa-luro-velez-sarsfield-monte-castro-floresta-villa-santa-rita-villa-general-mitre-caballito-con-patio-desde-2-hasta-3-ambientes-menos-1300000-pesos-orden-publicado-descendente.html"
+  - "https://www.zonaprop.com.ar/casas-departamentos-ph-alquiler-flores-parque-avellaneda-parque-chacabuco-mataderos-villa-luro-velez-sarsfield-monte-castro-floresta-villa-santa-rita-villa-general-mitre-caballito-con-terraza-desde-2-hasta-3-ambientes-menos-1300000-pesos-orden-publicado-descendente.html"
+  - "https://www.zonaprop.com.ar/casas-departamentos-ph-alquiler-flores-parque-avellaneda-parque-chacabuco-mataderos-villa-luro-velez-sarsfield-monte-castro-floresta-villa-santa-rita-villa-general-mitre-caballito-con-jardin-desde-2-hasta-3-ambientes-menos-1300000-pesos-orden-publicado-descendente.html"
+
+argenprop_full_url:
+  - "https://www.argenprop.com/casas-o-departamentos-o-ph/alquiler/barrio-santa-rita-o-caballito-o-flores-o-floresta-o-mataderos-o-monte-castro-o-parque-avellaneda-o-parque-chacabuco-o-velez-sarsfield-o-villa-general-mitre-o-villa-luro/2-ambientes-o-3-ambientes/pesos-hasta-1300000?con-ambiente-balcon&orden-masnuevos"
+  - "https://www.argenprop.com/casas-o-departamentos-o-ph/alquiler/barrio-santa-rita-o-caballito-o-flores-o-floresta-o-mataderos-o-monte-castro-o-parque-avellaneda-o-parque-chacabuco-o-velez-sarsfield-o-villa-general-mitre-o-villa-luro/2-ambientes-o-3-ambientes/pesos-hasta-1300000/con-patio?orden-masnuevos"
+
+properati_full_url:
+  - "https://www.properati.com.ar/s/alquiler?geos=3687%2C3654%2C3688%2C3644%2C3704%2C3672%2C3690%2C3695%2C3664%2C3666%2C3693&bedrooms=1%2C2&amenities=balcony&maxPrice=1300000&sort=published_on_desc&propertyType=apartment%2Chouse"
+  - "https://www.properati.com.ar/s/alquiler?geos=3687%2C3654%2C3688%2C3644%2C3704%2C3672%2C3690%2C3695%2C3664%2C3666%2C3693&bedrooms=1%2C2&amenities=garden&maxPrice=1300000&sort=published_on_desc&propertyType=apartment%2Chouse"
+  - "https://www.properati.com.ar/s/alquiler?geos=3687%2C3654%2C3688%2C3644%2C3704%2C3672%2C3690%2C3695%2C3664%2C3666%2C3693&bedrooms=1%2C2&amenities=terrace&maxPrice=1300000&sort=published_on_desc&propertyType=apartment%2Chouse"
+
+mercadolibre_full_url:
+  - "https://inmuebles.mercadolibre.com.ar/departamentos/alquiler/1-a-2-dormitorios/capital-federal/mataderos-o-monte-castro-o-caballito-o-flores-o-floresta-o-parque-avellaneda-o-parque-chacabuco-o-santa-rita-o-velez-sarsfield-o-villa-gral-mitre-o-villa-luro/_PriceRange_0ARS-1300000ARS_HAS*GARDEN_242085_NoIndex_True"
+  - "https://inmuebles.mercadolibre.com.ar/departamentos/alquiler/1-a-2-dormitorios/capital-federal/mataderos-o-monte-castro-o-caballito-o-flores-o-floresta-o-parque-avellaneda-o-parque-chacabuco-o-santa-rita-o-velez-sarsfield-o-villa-gral-mitre-o-villa-luro/_PriceRange_0ARS-1300000ARS_HAS*TERRACE_242085_NoIndex_True"
+  - "https://inmuebles.mercadolibre.com.ar/departamentos/alquiler/1-a-2-dormitorios/capital-federal/mataderos-o-monte-castro-o-caballito-o-flores-o-floresta-o-parque-avellaneda-o-parque-chacabuco-o-santa-rita-o-velez-sarsfield-o-villa-gral-mitre-o-villa-luro/_PriceRange_0ARS-1300000ARS_NoIndex_True"
+  - "https://inmuebles.mercadolibre.com.ar/ph/alquiler/1-a-2-dormitorios/capital-federal/mataderos-o-monte-castro-o-caballito-o-flores-o-floresta-o-parque-avellaneda-o-parque-chacabuco-o-santa-rita-o-velez-sarsfield-o-villa-gral-mitre-o-villa-luro/_PriceRange_0ARS-1300000ARS_HAS*GARDEN_242085_NoIndex_True"
+  - "https://inmuebles.mercadolibre.com.ar/ph/alquiler/1-a-2-dormitorios/capital-federal/mataderos-o-monte-castro-o-caballito-o-flores-o-floresta-o-parque-avellaneda-o-parque-chacabuco-o-santa-rita-o-velez-sarsfield-o-villa-gral-mitre-o-villa-luro/_PriceRange_0ARS-1300000ARS_HAS*TERRACE_242085_NoIndex_True"
+  - "https://inmuebles.mercadolibre.com.ar/ph/alquiler/1-a-2-dormitorios/capital-federal/mataderos-o-monte-castro-o-caballito-o-flores-o-floresta-o-parque-avellaneda-o-parque-chacabuco-o-santa-rita-o-velez-sarsfield-o-villa-gral-mitre-o-villa-luro/_PriceRange_0ARS-1300000ARS_NoIndex_True"
+  - "https://inmuebles.mercadolibre.com.ar/casas/alquiler/1-a-2-dormitorios/capital-federal/mataderos-o-monte-castro-o-caballito-o-flores-o-floresta-o-parque-avellaneda-o-parque-chacabuco-o-santa-rita-o-velez-sarsfield-o-villa-gral-mitre-o-villa-luro/_PriceRange_0ARS-1300000ARS_HAS*GARDEN_242085_NoIndex_True"
+  - "https://inmuebles.mercadolibre.com.ar/casas/alquiler/1-a-2-dormitorios/capital-federal/mataderos-o-monte-castro-o-caballito-o-flores-o-floresta-o-parque-avellaneda-o-parque-chacabuco-o-santa-rita-o-velez-sarsfield-o-villa-gral-mitre-o-villa-luro/_PriceRange_0ARS-1300000ARS_HAS*TERRACE_242085_NoIndex_True"
+  - "https://inmuebles.mercadolibre.com.ar/casas/alquiler/1-a-2-dormitorios/capital-federal/mataderos-o-monte-castro-o-caballito-o-flores-o-floresta-o-parque-avellaneda-o-parque-chacabuco-o-santa-rita-o-velez-sarsfield-o-villa-gral-mitre-o-villa-luro/_PriceRange_0ARS-1300000ARS_NoIndex_True"

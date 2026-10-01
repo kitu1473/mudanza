@@ -27,7 +27,6 @@ class ProperatiParser(BaseParser):
                 location_container = base_info_soap.select(
                     self.location_regex)[0]
             except Exception as e:
-                import ipdb;ipdb.set_trace()
                 continue
 
             href = '{}{}'.format(

@@ -1,0 +1,91 @@
+name: mudanza
+
+# Dispara SOLO con schedule y workflow_dispatch. NUNCA agregar `on: push`:
+# el commit del estado (abajo) dispararía el workflow en loop.
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: no manda a Telegram ni persiste el estado'
+        type: boolean
+        default: true
+      pages:
+        description: 'Páginas por URL (15-20 la primera vez, después 2-3)'
+        default: '3'
+
+env:
+  # Los disparos por cron se ignoran antes de esta fecha (UTC).
+  # Los manuales (workflow_dispatch) siempre corren.
+  LIVE_FROM: '2026-10-13'
+  STATE_BRANCH: bot-state
+
+concurrency:
+  group: mudanza
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Gate de fecha
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [[ "$(date -u +%F)" < "$LIVE_FROM" ]]; then
+            echo "Antes de $LIVE_FROM: cron ignorado."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Instalar dependencias
+        if: steps.gate.outputs.run == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Traer estado previo (rama bot-state)
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          mkdir -p state
+          if git ls-remote --exit-code --heads origin "$STATE_BRANCH" >/dev/null 2>&1; then
+            git fetch --depth=1 origin "$STATE_BRANCH"
+            git show "FETCH_HEAD:scrapdep.db" > state/scrapdep.db || true
+          fi
+
+      - name: Correr bot
+        if: steps.gate.outputs.run == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Cron => live (dry_run=false). Manual => lo que diga el input (default true).
+          DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || inputs.dry_run }}
+          PAGES: ${{ inputs.pages || '3' }}
+          DB_PATH: ${{ (github.event_name == 'schedule' || inputs.dry_run == false) && 'state/scrapdep.db' || 'state/dryrun.db' }}
+        run: python main.py ./config.example.yaml
+
+      - name: Guardar estado (solo corridas reales)
+        if: steps.gate.outputs.run == 'true' && (github.event_name == 'schedule' || inputs.dry_run == false)
+        run: |
+          cd "$(mktemp -d)"
+          git init -q
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          cp "$GITHUB_WORKSPACE/state/scrapdep.db" .
+          git config user.name "mudanza-bot"
+          git config user.email "mudanza-bot@users.noreply.github.com"
+          git checkout -q -b "$STATE_BRANCH"
+          git add scrapdep.db
+          git commit -q -m "state: $(date -u +%FT%TZ)"
+          git push -q --force origin "$STATE_BRANCH"

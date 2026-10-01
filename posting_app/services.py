@@ -1,3 +1,5 @@
+from typing import List, Union
+
 from rich.console import Console
 
 from .database import PostingRepository
@@ -15,9 +17,11 @@ class PostingService:
         posting_repository = PostingRepository()
 
         console.log(f'About to save {len(postings)} postings')
-        for posting in postings:
-            posting_repository.create_posting(posting)
-        console.log('Postings saved successfully!', style='green')
+        saved = sum(
+            1 for posting in postings
+            if posting_repository.create_posting(posting)
+        )
+        console.log(f'Saved {saved} postings', style='green')
 
 
 class PostingServiceFactory:
@@ -25,11 +29,13 @@ class PostingServiceFactory:
     def build_for_zonaprop(
         cls,
         pages: int,
-        full_url: str
+        full_url: Union[str, List[str]],
+        request_delay: float = 0,
     ) -> PostingService:
         scrapper_service = ScraperServiceFactory.build_for_zonaprop(
             pages=pages,
             full_url=full_url,
+            request_delay=request_delay,
         )
         return PostingService(scraper_service=scrapper_service)
 
@@ -37,11 +43,13 @@ class PostingServiceFactory:
     def build_for_argenprop(
         cls,
         pages: int,
-        full_url: str
+        full_url: Union[str, List[str]],
+        request_delay: float = 0,
     ) -> PostingService:
         scrapper_service = ScraperServiceFactory.build_for_argenprop(
             pages=pages,
             full_url=full_url,
+            request_delay=request_delay,
         )
         return PostingService(scraper_service=scrapper_service)
 
@@ -49,11 +57,13 @@ class PostingServiceFactory:
     def build_for_mercadolibre(
         cls,
         pages: int,
-        full_url: str
+        full_url: Union[str, List[str]],
+        request_delay: float = 0,
     ) -> PostingService:
         scrapper_service = ScraperServiceFactory.build_for_mercadolibre(
             pages=pages,
             full_url=full_url,
+            request_delay=request_delay,
         )
         return PostingService(scraper_service=scrapper_service)
 
@@ -61,11 +71,13 @@ class PostingServiceFactory:
     def build_for_la_voz(
         cls,
         pages: int,
-        full_url: str
+        full_url: Union[str, List[str]],
+        request_delay: float = 0,
     ) -> PostingService:
         scrapper_service = ScraperServiceFactory.build_for_la_voz(
             pages=pages,
             full_url=full_url,
+            request_delay=request_delay,
         )
         return PostingService(scraper_service=scrapper_service)
 
@@ -73,10 +85,12 @@ class PostingServiceFactory:
     def build_for_properati(
         cls,
         pages: int,
-        full_url: str
+        full_url: Union[str, List[str]],
+        request_delay: float = 0,
     ) -> PostingService:
         scrapper_service = ScraperServiceFactory.build_for_properati(
             pages=pages,
             full_url=full_url,
+            request_delay=request_delay,
         )
         return PostingService(scraper_service=scrapper_service)

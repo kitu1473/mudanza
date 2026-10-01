@@ -3,6 +3,7 @@ from html import escape
 import time
 
 from posting_app.database import Posting
+from .priority import format_bonus_line
 import datetime
 import json
 import os
@@ -25,7 +26,8 @@ class TelegramService:
         location = escape(posting.location or '')
         description = escape(posting.description or '')
 
-        msg = '<a href="{}"><b>{}</b></a>\n{}<i>{}</i>\n{}<i>{}</i>\n\n{}'.format(
+        bonus_line, _ = format_bonus_line(posting)
+        msg = bonus_line + '<a href="{}"><b>{}</b></a>\n{}<i>{}</i>\n{}<i>{}</i>\n\n{}'.format(
             posting.url,
             title,
             u'\U0001F4B0',
