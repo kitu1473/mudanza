@@ -98,7 +98,7 @@ def test_repository_create_posting_ignores_duplicates(tmp_path):
 def test_dry_run_end_to_end(tmp_path, monkeypatch, capsys):
     cfg = tmp_path / 'c.yaml'
     cfg.write_text(
-        'dry_run: true\nrequest_delay: 0\npages: 1\n'
+        'dry_run: true\nrequest_delay: 0\npages: 1\ngeocode: false\nmap_output: ' + str(tmp_path / 'm.html') + '\n'
         f'db_path: {tmp_path}/d.db\n'
         'zonaprop_full_url:\n  - u1.html\n  - u2.html\n'
     )
@@ -116,3 +116,92 @@ def test_dry_run_end_to_end(tmp_path, monkeypatch, capsys):
     repo = PostingRepository()
     unsent = repo.get_unsent_postings()
     assert sorted(p.sha for p in unsent) == ['a', 'b', 'c']   # saved, still unsent
+
+
+def test_geocoder_exact_then_approx_fallback():
+    from geo_app.geocoder import Geocoder
+    calls = []
+
+    def fetch(q):
+        calls.append(q)
+        return (-34.6, -58.4) if q.startswith('Flores,') else None
+
+    g = Geocoder(fetch=fetch, interval=0)
+    coords, prec = g.geocode('Av. Rivadavia 7000, Flores, Capital Federal')
+    assert coords == (-34.6, -58.4) and prec == 'approx'
+    assert len(calls) == 2
+    assert g.geocode('') == (None, None)
+
+
+def test_geocoder_exact_when_street_number():
+    from geo_app.geocoder import Geocoder
+    g = Geocoder(fetch=lambda q: (1.0, 2.0), interval=0)
+    assert g.geocode('Rivadavia 7000, Flores')[1] == 'exact'
+
+
+def test_geocoder_error_is_not_cached():
+    from geo_app.geocoder import Geocoder
+    n = {'c': 0}
+
+    def fetch(q):
+        n['c'] += 1
+        raise RuntimeError('boom')
+
+    g = Geocoder(fetch=fetch, interval=0)
+    assert g.geocode('A 1, B') == (None, None)
+    g.geocode('A 1, B')
+    assert n['c'] >= 4  # retried, nothing cached
+
+
+def test_geocode_state_and_map(tmp_path):
+    import datetime
+    from geo_app.mapfile import load_discarded, write_map
+    configure_engine(str(tmp_path / 'g.db'))
+    create_db_and_tables()
+    repo = PostingRepository()
+    repo.create_posting(Posting(sha='a', url='ua', title='</script>x', location='L'))
+    repo.create_posting(Posting(sha='b', url='ub', title='B', location='L'))
+    repo.create_posting(Posting(sha='c', url='uc', title='C', location='L'))
+    assert len(repo.get_postings_to_geocode(10)) == 3
+    repo.set_geocode('a', -34.6, -58.4, 'exact')
+    repo.set_geocode('b', -34.6, -58.4, 'approx')
+    repo.set_geocode('c', None, None, None)
+    assert repo.get_postings_to_geocode(10) == []          # c marked failed
+    past = datetime.datetime.utcnow() - datetime.timedelta(days=1)
+    shown = repo.get_postings_seen_since(past)
+    assert sorted(p.sha for p in shown) == ['a', 'b']       # c has no coords
+
+    disc = tmp_path / 'd.txt'
+    disc.write_text('# comment\nub  # no me gusto\n')
+    assert load_discarded(str(disc)) == {'ub'}
+    out = tmp_path / 'map.html'
+    assert write_map(shown, str(out), load_discarded(str(disc))) == 1
+    html = out.read_text()
+    assert '</script>x' not in html and 'ub' not in html.split('const postings')[1].split(';')[0]
+
+
+def test_touch_if_exists_refreshes_last_seen(tmp_path):
+    import datetime
+    configure_engine(str(tmp_path / 't2.db'))
+    create_db_and_tables()
+    repo = PostingRepository()
+    old = datetime.datetime(2020, 1, 1)
+    repo.create_posting(Posting(sha='a', url='ua', last_seen=old))
+    assert repo.touch_if_exists('a') is True
+    assert repo.touch_if_exists('zz') is False
+    assert repo.get_postings_seen_since(old + datetime.timedelta(days=1)) == []  # no coords yet
+    repo.set_geocode('a', 1.0, 2.0, 'exact')
+    assert len(repo.get_postings_seen_since(old + datetime.timedelta(days=1))) == 1
+
+
+def test_migration_adds_columns_to_old_db(tmp_path):
+    import sqlite3
+    db = tmp_path / 'old.db'
+    con = sqlite3.connect(db)
+    con.execute('CREATE TABLE posting (id INTEGER PRIMARY KEY, sha VARCHAR, url VARCHAR, '
+                'title VARCHAR, price VARCHAR, location VARCHAR, description VARCHAR, sent BOOLEAN)')
+    con.execute("INSERT INTO posting (sha, url, sent) VALUES ('a', 'ua', 1)")
+    con.commit(); con.close()
+    configure_engine(str(db))
+    create_db_and_tables()
+    assert PostingRepository().get_posting_by_sha('a').geo_failed in (False, 0, None)

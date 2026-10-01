@@ -49,7 +49,7 @@ class MercadolibreParser(BaseParser):
             location = self.sanitize_text(location_container.text)
 
             posting_repository = PostingRepository()
-            if posting_repository.get_posting_by_sha(sha):
+            if posting_repository.touch_if_exists(sha):
                 continue
 
             new_posting = Posting(

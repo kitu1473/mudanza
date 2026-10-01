@@ -76,6 +76,14 @@ jobs:
           DB_PATH: ${{ (github.event_name == 'schedule' || inputs.dry_run == false) && 'state/scrapdep.db' || 'state/dryrun.db' }}
         run: python main.py ./config.example.yaml
 
+      - name: Subir mapa como artifact
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mapa
+          path: mapa.html
+          if-no-files-found: ignore
+
       - name: Guardar estado (solo corridas reales)
         if: steps.gate.outputs.run == 'true' && (github.event_name == 'schedule' || inputs.dry_run == false)
         run: |
@@ -83,9 +91,10 @@ jobs:
           git init -q
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
           cp "$GITHUB_WORKSPACE/state/scrapdep.db" .
+          cp "$GITHUB_WORKSPACE/mapa.html" . || true
           git config user.name "mudanza-bot"
           git config user.email "mudanza-bot@users.noreply.github.com"
           git checkout -q -b "$STATE_BRANCH"
-          git add scrapdep.db
+          git add scrapdep.db mapa.html 2>/dev/null || git add scrapdep.db
           git commit -q -m "state: $(date -u +%FT%TZ)"
           git push -q --force origin "$STATE_BRANCH"

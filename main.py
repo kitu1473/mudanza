@@ -1,3 +1,4 @@
+import datetime
 import os
 
 import yaml
@@ -9,6 +10,9 @@ from pydantic import BaseModel
 from pydantic.error_wrappers import ValidationError
 from rich.console import Console
 from rich.progress import track
+
+from geo_app.geocoder import Geocoder
+from geo_app.mapfile import load_discarded, write_map
 
 from posting_app.database import (
     configure_engine,
@@ -39,6 +43,13 @@ class Config(BaseModel):
     # nor mark anything as sent.
     dry_run: Optional[bool] = False
     db_path: Optional[str] = 'scrapdep.db'
+    # Map: geocode new postings (max `geocode_limit` per run, Nominatim is
+    # 1 req/s) and regenerate a static HTML map with the recent ones.
+    geocode: Optional[bool] = True
+    geocode_limit: Optional[int] = 40
+    map_output: Optional[str] = 'mapa.html'
+    map_max_age_days: Optional[int] = 14  # not seen for longer => off the map
+    discarded_file: Optional[str] = 'descartados.txt'  # URLs to hide, one per line
     zonaprop_base_url: Optional[str] = None
     zonaprop_full_url: UrlSetting = None
     argenprop_full_url: UrlSetting = None
@@ -113,6 +124,28 @@ def main(config_path: str):
                 )
 
         console.log('Postings scrapped', style='italic bold green')
+
+        # GEOCODE + MAP
+        if config.geocode:
+            geocoder = Geocoder()
+            repository = PostingRepository()
+            for posting in repository.get_postings_to_geocode(config.geocode_limit):
+                coords, precision = geocoder.geocode(posting.location)
+                repository.set_geocode(
+                    posting.sha,
+                    *(coords or (None, None)),
+                    precision,
+                )
+        if config.map_output:
+            since = datetime.datetime.utcnow() - datetime.timedelta(
+                days=config.map_max_age_days
+            )
+            shown = write_map(
+                PostingRepository().get_postings_seen_since(since),
+                config.map_output,
+                load_discarded(config.discarded_file),
+            )
+            console.log(f'Map written with {shown} postings: {config.map_output}')
 
         # SEND POSTINGS
         posting_repository = PostingRepository()
