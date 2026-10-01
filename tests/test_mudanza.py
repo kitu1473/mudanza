@@ -245,3 +245,24 @@ def test_zonaprop_page_2_matches_real_site_url():
             'desde-2-hasta-3-ambientes-menos-1300000-pesos-orden-publicado-descendente')
     gw = ZonapropGateway()
     assert gw.page_url(base + '.html', 2) == base + '-pagina-2.html'
+
+
+def test_live_from_forces_dry_run(tmp_path, monkeypatch):
+    # live_from in the future + dry_run false + no token: must NOT error out
+    # about the token (dry run is forced) and must not call Telegram.
+    cfg = tmp_path / 'c.yaml'
+    cfg.write_text(
+        'dry_run: false\nlive_from: 2999-01-01\ngeocode: false\n'
+        f'map_output: {tmp_path}/m.html\ndb_path: {tmp_path}/l.db\n'
+    )
+    monkeypatch.delenv('TELEGRAM_BOT_TOKEN', raising=False)
+    monkeypatch.delenv('TELEGRAM_CHAT_ID', raising=False)
+    monkeypatch.setattr(
+        TelegramService, '_post_message',
+        lambda *a, **k: pytest.fail('must not call Telegram before live_from'))
+    main_module.main(str(cfg))
+    assert (tmp_path / 'l.db').exists()      # got past the config checks
+
+
+def test_chat_id_without_quotes_is_accepted():
+    assert main_module.Config(chat_room=123456789).chat_room == '123456789'

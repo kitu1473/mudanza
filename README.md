@@ -121,18 +121,13 @@ Cambios sobre el bot original:
 - `bot_token`/`chat_room` pueden venir de `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID`.
 - Un portal que falla (bloqueo, HTML cambiado) no frena a los demás.
 
-### Prueba local (sin Telegram)
+### Uso en Windows
+
+Ver `docs/WINDOWS.md`: `instalar.bat` una vez, `correr.bat` cada vez que quieras buscar. Todo corre desde tu PC (ZonaProp bloquea las IPs de datacenter, así que no sirve GitHub Actions).
+
+### Tests
 
 ```bash
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt pytest
-python -m pytest                      # tests offline
-python main.py ./config.example.yaml  # dry_run: true, imprime los mensajes
+pip install pytest
+python -m pytest
 ```
-
-### GitHub Actions (`.github/workflows/mudanza.yml`)
-
-- **No está live**: el cron (cada 6 h) se ignora hasta el **2026-10-13 (UTC)** (`LIVE_FROM` en el workflow). Antes de esa fecha solo corre a mano: *Actions → mudanza → Run workflow* (por defecto `dry_run` = true y no persiste estado).
-- Secrets requeridos para correr real: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
-- Estado (base de datos de avisos ya enviados) se guarda en la rama `bot-state`. El workflow nunca se dispara con `push`, así no hay loop.
-- Primera corrida real: a mano con `dry_run` = false y `pages` = 15-20. Después, el cron usa `pages` = 3.

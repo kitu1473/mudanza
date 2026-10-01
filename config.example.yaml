@@ -1,20 +1,19 @@
-# Config de ejemplo. Copiar a config.yaml (ignorado por git) para uso local.
-# En GitHub Actions se usa este mismo archivo; el token y el chat id llegan
-# por los secrets TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID (nunca van acá).
+# Config de ejemplo. Copiar a config.yaml (ignorado por git) y completar el
+# token y el chat id. NUNCA subir config.yaml a GitHub: tiene el token.
 persist: false
 dry_run: true          # true = no manda a Telegram ni marca avisos como enviados
+live_from: 2026-10-13  # antes de esta fecha se fuerza dry_run aunque pongas false
 db_path: scrapdep.db
 pages: 3               # 15-20 para la primera corrida; 2-3 después
 mercadolibre_pages: 5  # MercadoLibre sin orden por fecha: más páginas (4-5)
-geocode: true          # dirección -> coordenadas (Nominatim/OpenStreetMap, gratis)
+request_delay: 1.5     # segundos entre requests, para no ser bloqueado
+geocode: true          # dirección -> coordenadas (OpenStreetMap, gratis)
 geocode_limit: 40      # máx. avisos a geocodificar por corrida
 map_output: mapa.html
 map_max_age_days: 14   # avisos no vistos hace más días salen del mapa
 discarded_file: descartados.txt  # URLs a ocultar del mapa, una por línea
-request_delay: 1.5     # segundos entre requests, para no ser bloqueado
-# bot_token: ""        # o variable de entorno TELEGRAM_BOT_TOKEN
-# chat_room: ""        # o variable de entorno TELEGRAM_CHAT_ID
-
+bot_token: ""          # token de @BotFather
+chat_room: ""          # id que imprime scripts/telegram_setup.py
 
 zonaprop_full_url:
   - "https://www.zonaprop.com.ar/casas-departamentos-ph-alquiler-flores-parque-avellaneda-parque-chacabuco-mataderos-villa-luro-velez-sarsfield-monte-castro-floresta-villa-santa-rita-villa-general-mitre-caballito-con-balcon-desde-2-hasta-3-ambientes-menos-1300000-pesos-orden-publicado-descendente.html"

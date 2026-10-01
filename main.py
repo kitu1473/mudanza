@@ -6,8 +6,7 @@ from time import sleep
 from typing import List, Optional, Union
 
 import typer
-from pydantic import BaseModel
-from pydantic.error_wrappers import ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 from rich.console import Console
 from rich.progress import track
 
@@ -30,6 +29,9 @@ UrlSetting = Optional[Union[str, List[str]]]
 
 
 class Config(BaseModel):
+    # YAML reads an unquoted chat id as a number
+    model_config = ConfigDict(coerce_numbers_to_str=True)
+
     pages: Optional[int] = 3
     # Pages per URL. MercadoLibre can override it with `mercadolibre_pages`
     mercadolibre_pages: Optional[int] = None
@@ -40,6 +42,8 @@ class Config(BaseModel):
     bot_token: Optional[str] = None
     chat_room: Optional[str] = None
     persist: Optional[bool] = False
+    # Before this date (YYYY-MM-DD) dry_run is forced: nothing goes to Telegram
+    live_from: Optional[datetime.date] = None
     # dry_run: scrape and print the messages, but don't send to Telegram
     # nor mark anything as sent.
     dry_run: Optional[bool] = False
@@ -82,13 +86,6 @@ def main(config_path: str):
         return
     config.bot_token = config.bot_token or os.environ.get('TELEGRAM_BOT_TOKEN')
     config.chat_room = config.chat_room or os.environ.get('TELEGRAM_CHAT_ID')
-    if not config.dry_run and not (config.bot_token and config.chat_room):
-        console.log(
-            '[bold u]ERROR[/bold u]: bot_token and chat_room are required '
-            'unless dry_run is true.',
-            style='red'
-        )
-        return
     # Environment overrides (used by the GitHub Actions workflow)
     if os.environ.get('PAGES'):
         config.pages = int(os.environ['PAGES'])
@@ -96,6 +93,19 @@ def main(config_path: str):
         config.dry_run = os.environ['DRY_RUN'].lower() == 'true'
     if os.environ.get('DB_PATH'):
         config.db_path = os.environ['DB_PATH']
+    if config.live_from and datetime.date.today() < config.live_from:
+        config.dry_run = True
+        console.log(
+            f'Before live_from ({config.live_from}): forcing dry_run',
+            style='bold yellow'
+        )
+    if not config.dry_run and not (config.bot_token and config.chat_room):
+        console.log(
+            '[bold u]ERROR[/bold u]: bot_token and chat_room are required '
+            'unless dry_run is true.',
+            style='red'
+        )
+        return
     console.log('Configuration read correctly', style='italic bold green')
     if config.dry_run:
         console.log('DRY RUN: nothing will be sent to Telegram', style='bold yellow')

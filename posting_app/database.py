@@ -1,6 +1,7 @@
 import datetime
 from typing import Optional, List
 
+from pydantic import NaiveDatetime
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import (
@@ -27,7 +28,7 @@ class Posting(SQLModel, table=True):
     location: Optional[str] = None
     description: Optional[str] = None
     sent: bool = Field(default=False, index=True)
-    last_seen: Optional[datetime.datetime] = Field(
+    last_seen: Optional[NaiveDatetime] = Field(
         default_factory=datetime.datetime.utcnow
     )
     lat: Optional[float] = None
