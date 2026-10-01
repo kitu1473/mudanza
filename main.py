@@ -31,7 +31,8 @@ UrlSetting = Optional[Union[str, List[str]]]
 
 class Config(BaseModel):
     pages: Optional[int] = 3
-    # MercadoLibre has no pagination support: this only applies to the others
+    # Pages per URL. MercadoLibre can override it with `mercadolibre_pages`
+    mercadolibre_pages: Optional[int] = None
     sleep_time: Optional[int] = 5
     request_delay: Optional[float] = 1.5
     # Without bot_token/chat_room, falls back to the TELEGRAM_BOT_TOKEN /
@@ -112,7 +113,7 @@ def main(config_path: str):
                 continue
             try:
                 service = getattr(PostingServiceFactory, builder_name)(
-                    pages=config.pages,
+                    pages=getattr(config, f'{portal}_pages', None) or config.pages,
                     full_url=full_url,
                     request_delay=config.request_delay,
                 )

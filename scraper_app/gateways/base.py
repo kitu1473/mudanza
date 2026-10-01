@@ -44,6 +44,9 @@ class BaseGateway(ABC):
             return ''
 
         if res.ok:
+            if res.encoding in (None, 'ISO-8859-1'):
+                # requests defaults to latin-1 when the header has no charset
+                res.encoding = 'utf-8'
             console.log(
                 '{} responded OK!'.format(self._name),
                 style='green'

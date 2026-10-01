@@ -13,9 +13,27 @@ class ArgenpropParser(BaseParser):
     base_info_tag = "div"
     link_regex = "a.card"
     price_regex = "p.card__price"
-    description_regex = "p.card__title--primary"
+    features_regex = "ul.card__main-features"
+    expenses_regex = "p.card__expenses"
+    agent_regex = "div.card__agent-description"
+    info_regex = "p.card__info"
     location_regex = "p.card__address"
     title_regex = "h2.card__title, p.card__title--primary"
+
+    def build_description(self, card) -> str:
+        '''Features | expensas | who publishes | start of the ad text.'''
+        parts = []
+        for regex, limit in (
+            (self.features_regex, None),
+            (self.expenses_regex, None),
+            (self.agent_regex, None),
+            (self.info_regex, 160),
+        ):
+            node = card.select_one(regex)
+            if node:
+                text = self.sanitize_text(node.get_text())
+                parts.append(text[:limit] if limit else text)
+        return ' | '.join(parts)
 
     def extract_data(self) -> Set[Posting]:
         """Extracting data and returning list of objects"""
@@ -26,7 +44,6 @@ class ArgenpropParser(BaseParser):
         for base_info_soap in base_info_soaps:
             link_container = base_info_soap.select_one(self.link_regex)
             price_container = base_info_soap.select_one(self.price_regex)
-            description_container = base_info_soap.select_one(self.description_regex)
             location_container = base_info_soap.select_one(self.location_regex)
             title_container = base_info_soap.select_one(self.title_regex)
 
@@ -38,8 +55,11 @@ class ArgenpropParser(BaseParser):
             title = self.sanitize_text(title_container.get_text())
             sha = self.get_id(href)
             price = self.sanitize_text(price_container.get_text()) if price_container else ''
-            description = self.sanitize_text(description_container.get_text())
-            location = self.sanitize_text(location_container.get_text())
+            location = (
+                self.sanitize_text(location_container.get_text())
+                if location_container else ''
+            )
+            description = self.build_description(base_info_soap)
 
             posting_repository = PostingRepository()
             if posting_repository.touch_if_exists(sha):

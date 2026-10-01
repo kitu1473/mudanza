@@ -67,7 +67,7 @@ def test_page_urls():
     assert ArgenpropGateway().page_url('https://a/x', 2) == 'https://a/x?pagina-2'
     p = 'https://www.properati.com.ar/s/alquiler?geos=1'
     assert ProperatiGateway().page_url(p, 1) == p
-    assert ProperatiGateway().page_url(p, 2) == p + '&page=2'
+    assert ProperatiGateway().page_url(p, 2) == 'https://www.properati.com.ar/s/alquiler/2?geos=1'
     assert ZonapropGateway().page_url('https://a/b-pagina-{}.html', 4) == 'https://a/b-pagina-4.html'
 
 
@@ -205,3 +205,12 @@ def test_migration_adds_columns_to_old_db(tmp_path):
     configure_engine(str(db))
     create_db_and_tables()
     assert PostingRepository().get_posting_by_sha('a').geo_failed in (False, 0, None)
+
+
+def test_mercadolibre_page_url():
+    from scraper_app.gateways import MercadolibreGateway
+    u = 'https://inmuebles.mercadolibre.com.ar/ph/alquiler/x-o-y/_PriceRange_0ARS-1300000ARS_NoIndex_True'
+    g = MercadolibreGateway()
+    assert g.page_url(u, 1) == u
+    assert g.page_url(u, 2) == u.replace('/_Price', '/_Desde_49_Price')
+    assert g.page_url(u, 3) == u.replace('/_Price', '/_Desde_97_Price')

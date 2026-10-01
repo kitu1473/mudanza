@@ -4,7 +4,8 @@
 persist: false
 dry_run: true          # true = no manda a Telegram ni marca avisos como enviados
 db_path: scrapdep.db
-pages: 3               # 15-20 para la primera corrida; 2-3 después. No aplica a MercadoLibre
+pages: 3               # 15-20 para la primera corrida; 2-3 después
+mercadolibre_pages: 5  # MercadoLibre sin orden por fecha: más páginas (4-5)
 geocode: true          # dirección -> coordenadas (Nominatim/OpenStreetMap, gratis)
 geocode_limit: 40      # máx. avisos a geocodificar por corrida
 map_output: mapa.html
