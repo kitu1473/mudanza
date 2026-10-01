@@ -1,19 +1,21 @@
 from typing import Set
 
-from bs4 import BeautifulSoup
-
 from .base import BaseParser
 from posting_app.database import Posting, PostingRepository
 
 
 class ZonapropParser(BaseParser):
+    # Selectors match on class fragments, not on tags: ZonaProp has already
+    # changed h2/h3/h4/div for the same elements.
     base_info_class = 'postingCardLayout-module__posting-card-container'
     base_info_tag = 'div'
-    link_regex = 'h3.postingCard-module__posting-description a'
-    price_regex = 'div.postingPrices-module__price'
-    description_regex = 'h3.postingCard-module__posting-description'
-    location_regex = 'h2.postingLocations-module__location-text'
-    features_regex = 'span.postingMainFeatures-module__posting-main-features-span'
+    link_regex = '[class*="posting-description"] a'
+    price_regex = '[class*="postingPrices-module__price"]:not([class*="container"])'
+    expenses_regex = '[class*="postingPrices-module__expenses"]'
+    description_regex = '[class*="posting-description"]'
+    address_regex = '[class*="location-address"]'
+    location_regex = '[class*="location-text"]'
+    features_regex = '[class*="posting-main-features-span"]'
     _base_url = 'https://www.zonaprop.com.ar'
 
     def extract_data(self) -> Set[Posting]:
@@ -25,41 +27,44 @@ class ZonapropParser(BaseParser):
         for base_info_soap in base_info_soaps:
             link_container = base_info_soap.select_one(self.link_regex)
             price_container = base_info_soap.select_one(self.price_regex)
+            expenses_container = base_info_soap.select_one(self.expenses_regex)
             description_container = base_info_soap.select_one(self.description_regex)
+            address_container = base_info_soap.select_one(self.address_regex)
             location_container = base_info_soap.select_one(self.location_regex)
 
-            if not (link_container and description_container and location_container):
-                # price may be 'Consultar precio' or missing, but link/description/location are required
+            if not (link_container and link_container.get('href')):
                 continue
 
-            href = '{}{}'.format(
-                self._base_url,
-                link_container.get('href', ''),
-            )
-
-            # Short title: take first line or first 100 chars
-            raw_title = link_container.get_text(separator=' ').strip()
-            # sometimes Zonaprop uses long descriptions; split on 'Descripción' to keep concise
-            if 'Descripción' in raw_title:
-                raw_title = raw_title.split('Descripción')[0]
-            title = self.sanitize_text(raw_title)[:100]
-
+            # Drop the tracking query (?n_src=Listado&n_pos=...)
+            href = self._base_url + link_container['href'].split('?')[0]
             sha = self.get_id(href)
-            price = self.sanitize_text(price_container.get_text()) if price_container else ''
-
-            # Build brief description from features (m2, ambs) if present
-            features = [self.sanitize_text(f.get_text()) for f in base_info_soap.select(self.features_regex)]
-            if features:
-                description = ' | '.join(features)
-            else:
-                # fallback: short excerpt of the long description
-                description = self.sanitize_text(description_container.get_text())[:140]
-
-            location = self.sanitize_text(location_container.get_text())
 
             posting_repository = PostingRepository()
             if posting_repository.touch_if_exists(sha):
                 continue
+
+            long_description = (
+                self.sanitize_text(description_container.get_text())
+                if description_container else ''
+            )
+            title = long_description[:100]
+            price = self.sanitize_text(price_container.get_text()) if price_container else ''
+
+            # "Street al 1800" + "Barrio, Capital Federal": best input for geocoding
+            location = ', '.join(
+                self.sanitize_text(node.get_text())
+                for node in (address_container, location_container)
+                if node and node.get_text(strip=True)
+            )
+
+            parts = [
+                self.sanitize_text(f.get_text())
+                for f in base_info_soap.select(self.features_regex)
+            ]
+            if expenses_container:
+                parts.append(self.sanitize_text(expenses_container.get_text()))
+            parts.append(long_description[:160])
+            description = ' | '.join(p for p in parts if p)
 
             new_posting = Posting(
                 sha=sha,

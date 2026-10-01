@@ -214,3 +214,26 @@ def test_mercadolibre_page_url():
     assert g.page_url(u, 1) == u
     assert g.page_url(u, 2) == u.replace('/_Price', '/_Desde_49_Price')
     assert g.page_url(u, 3) == u.replace('/_Price', '/_Desde_97_Price')
+
+
+FIXTURES = __import__('pathlib').Path(__file__).parent / 'fixtures'
+
+
+@pytest.mark.parametrize('portal, parser_name, expected_host', [
+    ('zonaprop', 'ZonapropParser', 'www.zonaprop.com.ar'),
+    ('argenprop', 'ArgenpropParser', 'www.argenprop.com'),
+    ('properati', 'ProperatiParser', 'www.properati.com.ar'),
+])
+def test_parsers_on_real_cards(tmp_path, portal, parser_name, expected_host):
+    # Cards captured from the live sites (Oct 2026). If a portal changes its
+    # HTML, refresh the fixture and fix the parser.
+    import scraper_app.parsers as parsers
+    configure_engine(str(tmp_path / f'{portal}.db'))
+    create_db_and_tables()
+    parser = getattr(parsers, parser_name)()
+    parser.get_soup_object((FIXTURES / f'{portal}_cards.html').read_text(encoding='utf-8'))
+    found = parser.extract_data()
+    assert len(found) == 2
+    for p in found:
+        assert p.url.startswith(f'https://{expected_host}/') and '?' not in p.url
+        assert p.title and p.price and p.location
