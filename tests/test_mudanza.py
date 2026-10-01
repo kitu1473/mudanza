@@ -237,3 +237,11 @@ def test_parsers_on_real_cards(tmp_path, portal, parser_name, expected_host):
     for p in found:
         assert p.url.startswith(f'https://{expected_host}/') and '?' not in p.url
         assert p.title and p.price and p.location
+
+
+def test_zonaprop_page_2_matches_real_site_url():
+    # URL of page 2 copied from the real site
+    base = ('https://www.zonaprop.com.ar/casas-departamentos-ph-alquiler-flores-con-balcon-'
+            'desde-2-hasta-3-ambientes-menos-1300000-pesos-orden-publicado-descendente')
+    gw = ZonapropGateway()
+    assert gw.page_url(base + '.html', 2) == base + '-pagina-2.html'
